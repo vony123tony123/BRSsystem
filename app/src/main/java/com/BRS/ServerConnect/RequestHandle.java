@@ -2,15 +2,16 @@ package com.BRS.ServerConnect;
 
 import android.util.Log;
 
+import com.BRS.baseball.CameraAction;
+
 import java.io.File;
-import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -23,13 +24,10 @@ public class RequestHandle {
 
     private static int DEFAULT_TIMEOUT = 1000;
 
-//    private static HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY);
-
     private static OkHttpClient httpClient =
             new OkHttpClient.Builder().connectTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS)
                     .writeTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS)
                     .readTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS)
-//                    .addInterceptor(loggingInterceptor)
                     .build();
 
     private static final Retrofit retrofit = new Retrofit.Builder()
@@ -39,22 +37,31 @@ public class RequestHandle {
 
     private static Request_Interface requestInterface = retrofit.create(Request_Interface.class);
 
-    public static boolean upload(File file){
+    private static String camera_position = "";
+    private static boolean startRecord = false;
+
+    public static void setCamera_position(String s){
+        camera_position = s;
+    }
+    public static void setStartRecord(boolean b){startRecord = b;}
+
+    public static boolean uploadVideo(File file){
+        RequestBody videodirPart = RequestBody.create(MultipartBody.FORM, camera_position);
         RequestBody videoPart = RequestBody.create(MediaType.parse("*/*"), file);
         MultipartBody.Part bodyfile = MultipartBody.Part.createFormData("recordFile", file.getName(), videoPart);
 
-        Call<ResponseBody> call = requestInterface.upload(bodyfile);
+        Call<ResponseBody> call = requestInterface.uploadVideo(videodirPart,bodyfile);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call,
                                    Response<ResponseBody> response_raw) {
                 String recordfilepath_in_server = "";
                 try {
-                    recordfilepath_in_server = response_raw.message();
+                    recordfilepath_in_server = response_raw.body().string();;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                Log.v("Upload Success", "response path =" + recordfilepath_in_server);
+                Log.e("Upload Success", "result = " + recordfilepath_in_server);
                 file.delete();
             }
 
@@ -66,5 +73,31 @@ public class RequestHandle {
         return true;
     }
 
+    public static boolean uploadImage(File file) throws Exception {
+        RequestBody videoPart = RequestBody.create(MediaType.parse("*/*"), file);
+        MultipartBody.Part bodyfile = MultipartBody.Part.createFormData("imagefile", file.getName(), videoPart);
+        Call<ResponseBody> call = requestInterface.uploadImage(bodyfile);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call,
+                                   Response<ResponseBody> response_raw) {
+                String message = "";
+                try {
+                    message = response_raw.body().string();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                Log.e("Upload Success", "message = " + message);
+                Log.d("File delete ", String.valueOf(file.delete()));
+                CameraAction.setFlag(Boolean.valueOf(message));
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e("Upload error", t.getMessage());
+            }
+        });
+        return startRecord;
+    }
 
 }
