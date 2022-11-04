@@ -7,7 +7,9 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.CameraX;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
@@ -54,16 +56,20 @@ public class CameraAction {
     private static final String TAG = "Baseball";
     private static final String FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS";
     private static boolean flag = false;
+    private RequestHandle requestHandle;
+    private Camera camera;
 
     public CameraAction(ListenableFuture<ProcessCameraProvider> cameraProviderFuture,
                         PreviewView viewFinder, Button videocaptureBtn,
                         LifecycleOwner lifeCycleOwner,
-                        Context context) {
+                        Context context,
+                        RequestHandle requestHandle) {
         this.cameraProviderFuture = cameraProviderFuture;
         this.viewFinder = viewFinder;
         this.lifeCycleOwner = lifeCycleOwner;
         this.context = context;
         this.videocaptureBtn = videocaptureBtn;
+        this.requestHandle = requestHandle;
     }
 
     public static void setFlag(boolean b){
@@ -95,7 +101,7 @@ public class CameraAction {
             // Unbind use cases before rebinding
             cameraProvider.unbindAll();
             // Bind use cases to camera
-            cameraProvider.bindToLifecycle(
+            camera = cameraProvider.bindToLifecycle(
                     lifeCycleOwner, cameraSelector, preview, videoCapture);
         } catch (Exception e) {
             Log.e(TAG, "Use case binding failed", e);
@@ -113,7 +119,7 @@ public class CameraAction {
             // Unbind use cases before rebinding
             cameraProvider.unbindAll();
             // Bind use cases to camera
-            cameraProvider.bindToLifecycle(
+            camera = cameraProvider.bindToLifecycle(
                     lifeCycleOwner, cameraSelector, preview, imageCapture);
         } catch (Exception e) {
             Log.e(TAG, "Use case binding failed", e);
@@ -123,12 +129,6 @@ public class CameraAction {
 
     protected void captureVideo() throws IOException {
         if(videoCapture == null) throw new AssertionError("videoCapture isn't initial");
-        Recording curRecording = recording;
-//        if(curRecording != null){
-//            curRecording.stop();
-//            recording = null;
-//            return;
-//        }
 
         String name = new SimpleDateFormat(FILENAME_FORMAT, Locale.CHINESE).format(System.currentTimeMillis());
         FileOutputOptions fileOutputOptions = new FileOutputOptions
@@ -152,7 +152,7 @@ public class CameraAction {
                                     Toast.makeText(context, s, Toast.LENGTH_SHORT).show();
                                     Log.d(TAG, s);
                                     File file = new File(recorduri.getPath());
-                                    RequestHandle.uploadVideo(file);
+                                    requestHandle.uploadVideo(file);
                                 }else {
                                     Log.e(TAG, "Video capture ends with error: " +
                                             ((VideoRecordEvent.Finalize) videoRecordEvent).getError());
@@ -181,7 +181,7 @@ public class CameraAction {
                         Uri uri = outputFileResults.getSavedUri();
                         File file = new File(uri.getPath());
                         try {
-                            RequestHandle.uploadImage(file);
+                            requestHandle.uploadImage(file);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -193,5 +193,13 @@ public class CameraAction {
                     }
         });
         return flag;
+    }
+
+    public void enableFlash(){
+        camera.getCameraControl().enableTorch(true);
+    }
+
+    public void disableFlash(){
+        camera.getCameraControl().enableTorch(false);
     }
 }

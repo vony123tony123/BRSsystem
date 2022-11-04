@@ -25,7 +25,7 @@ public class StartActivity extends AppCompatActivity {
         sideButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                RequestHandle.setCamera_position("side");
+                intent.putExtra("cameraPosition","side");
                 startActivity(intent);
             }
         });
@@ -34,7 +34,7 @@ public class StartActivity extends AppCompatActivity {
         behindButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                RequestHandle.setCamera_position("behind");
+                intent.putExtra("cameraPosition","behind");
                 startActivity(intent);
             }
         });
