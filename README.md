@@ -4,9 +4,7 @@
 ## Server 連結
 https://github.com/MasterSeafood-SeafoodMaster/yolov5_baseballDetect
 
-##
-
-##系統架構介紹
+## 系統架構介紹
 手機端使用retrofit2來傳遞拍攝到的圖片，而Server端處理完圖片之後將判斷結果回傳到Client，由手機通知使用者好球或是壞球。
 
 ## APP畫面
